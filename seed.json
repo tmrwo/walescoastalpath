@@ -1,0 +1,124 @@
+[
+ {
+  "created": 1790265273887,
+  "days": [
+   {
+    "ascent": 180,
+    "bed": "",
+    "descent": 170,
+    "extra": "",
+    "from": "Chepstow",
+    "guide": "Your first outing on the Wales Coast Path starts gently enough, though there's a lovely bit of drama built in from the off. You'll begin right beneath Chepstow Castle, Britain's oldest stone castle, which is well worth a proper look before you set out – it's not every day you start a walk under something quite so old and imposing. From there the path drops down towards the Severn, and the walking settles into an easy, low-lying rhythm along the estuary, with the high point barely worth calling a hill at 57 metres.\\n\\nThe real highlight of the day comes at Black Rock, near Portskewett, where you get a fine view of both Severn bridges strung out across the water. If the tide and season are right, keep an eye out for the lave net fishermen working the shallows here – it's a curious, ancient practice unique to this stretch of coast, and worth pausing for even if you're not fully sure what you're looking at.\\n\\nThere's no obvious lunch stop flagged along the way, so it's worth carrying food with you rather than relying on finding somewhere; if you do pass anywhere that looks promising, check it's open before counting on it. The terrain throughout is easy and low-level, with nothing particularly tough or exposed – a gentle introduction to the trip.\\n\\nYou'll finish the day at Caldicot, ready for an early night before the real walking begins.",
+    "id": "4rp33mrm",
+    "lunch": "",
+    "miles": 9,
+    "rev": true,
+    "seg": {
+     "f0": 0,
+     "f1": 1,
+     "i0": 7,
+     "i1": 7
+    },
+    "stage": 7,
+    "to": "Caldicot",
+    "travel": ""
+   },
+   {
+    "ascent": 80,
+    "bed": "",
+    "descent": 80,
+    "extra": "",
+    "from": "Caldicot",
+    "id": "7fheucw0",
+    "lunch": "",
+    "miles": 19.8,
+    "rev": true,
+    "seg": {
+     "f0": 0,
+     "f1": 1,
+     "i0": 6,
+     "i1": 6
+    },
+    "stage": 6,
+    "to": "Newport",
+    "travel": ""
+   },
+   {
+    "ascent": 50,
+    "bed": "",
+    "descent": 50,
+    "extra": "",
+    "from": "Newport",
+    "id": "yh63wxy9",
+    "lunch": "",
+    "miles": 15.4,
+    "rev": true,
+    "seg": {
+     "f0": 0,
+     "f1": 1,
+     "i0": 5,
+     "i1": 5
+    },
+    "stage": 5,
+    "to": "Cardiff",
+    "travel": ""
+   },
+   {
+    "ascent": 230,
+    "bed": "",
+    "descent": 210,
+    "extra": "",
+    "from": "Cardiff",
+    "id": "iukpy12h",
+    "lunch": "",
+    "miles": 12.8,
+    "rev": true,
+    "seg": {
+     "f0": 0,
+     "f1": 1,
+     "i0": 4,
+     "i1": 4
+    },
+    "stage": 4,
+    "to": "Barry",
+    "travel": ""
+   },
+   {
+    "ascent": 710,
+    "bed": "",
+    "descent": 730,
+    "extra": "",
+    "from": "Barry",
+    "id": "avorvan9",
+    "lunch": "",
+    "miles": 13.5,
+    "rev": true,
+    "seg": {
+     "f0": 0,
+     "f1": 1,
+     "i0": 3,
+     "i1": 3
+    },
+    "stage": 3,
+    "to": "Llantwit Major",
+    "travel": ""
+   }
+  ],
+  "id": "1e6ypzj7",
+  "name": "First Outing",
+  "notes": [],
+  "sectionId": "south",
+  "status": "planned",
+  "when": "March 2027"
+ },
+ {
+  "created": 1790263798899,
+  "days": [],
+  "id": "kmwi3yqr",
+  "name": "All the way to Fishguard",
+  "notes": [],
+  "sectionId": "pembs",
+  "status": "planned",
+  "when": ""
+ }
+]

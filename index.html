@@ -1,0 +1,383 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Coast Path Planner</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="vendor/leaflet.css">
+<style>
+:root{
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);
+  --ground:#F3EFE6;--paper:#FFFDF8;--ink:#1B2628;--muted:#56646A;--line:#E4DFD3;--line2:#D5CFC2;
+  --accent:#2C6478;--accent-ink:#F3EFE6;--warm:#B8632C;--warm-soft:#F1D9C8;
+  --water:#D3E6F3;--land:#FBFAF5;--landline:#6B7C86;--todo:#9A958A;--chip:#E4DFD3;--seafill:#DCE7EA;--contour:#C98A5E;--contour2:#DDB08F;
+  --poi-view:#2C6478;--poi-sight:#7A5A9E;--poi-beach:#3D8FA8;--poi-wildlife:#4F7D4A;--poi-lunch:#B8632C;--poi-town:#6B6B6B;
+  --shadow:0 6px 24px rgba(27,38,40,.10);
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --ground:#16201F;--paper:#1E2A2A;--ink:#EDE8DD;--muted:#A9B4B6;--line:#2E3B3B;--line2:#3A4848;
+  --accent:#6FA8BD;--accent-ink:#10191A;--warm:#E08A55;--warm-soft:#4A3324;
+  --water:#17262E;--land:#232D2C;--landline:#5A6A72;--todo:#6B7472;--chip:#2E3B3B;--seafill:#24393F;--contour:#7A5A44;--contour2:#5C4839;
+  --poi-view:#6FA8BD;--poi-sight:#A98BD0;--poi-beach:#6BB5CC;--poi-wildlife:#7FB57A;--poi-lunch:#E08A55;--poi-town:#9A9A9A;
+  --shadow:0 6px 24px rgba(0,0,0,.35);
+}}
+:root[data-theme="dark"]{
+  --ground:#16201F;--paper:#1E2A2A;--ink:#EDE8DD;--muted:#A9B4B6;--line:#2E3B3B;--line2:#3A4848;
+  --accent:#6FA8BD;--accent-ink:#10191A;--warm:#E08A55;--warm-soft:#4A3324;
+  --water:#17262E;--land:#232D2C;--landline:#5A6A72;--todo:#6B7472;--chip:#2E3B3B;--seafill:#24393F;--contour:#7A5A44;--contour2:#5C4839;
+  --poi-view:#6FA8BD;--poi-sight:#A98BD0;--poi-beach:#6BB5CC;--poi-wildlife:#7FB57A;--poi-lunch:#E08A55;--poi-town:#9A9A9A;
+  --shadow:0 6px 24px rgba(0,0,0,.35);
+}
+html{scroll-padding-top:env(safe-area-inset-top,0px);height:100%}
+body{margin:0;height:100%;font-family:"IBM Plex Sans",system-ui,sans-serif;font-size:14px;line-height:1.4;background:var(--ground);color:var(--ink);display:flex;flex-direction:column}
+*,*::before,*::after{box-sizing:inherit}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+h1,h2,h3{margin:0;font-family:Fraunces,Georgia,serif;font-weight:600;line-height:1.1}
+a{color:var(--accent)}
+.serif{font-family:Fraunces,Georgia,serif;font-weight:600}
+.muted{color:var(--muted)}
+.small{font-size:12px}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+header.top{height:60px;flex-shrink:0;padding:0 20px;display:flex;align-items:center;gap:20px;background:var(--paper);border-bottom:1px solid var(--line);position:sticky;top:env(safe-area-inset-top,0px);z-index:5}
+.brand{display:flex;align-items:center;gap:10px;font-family:Fraunces,Georgia,serif;font-weight:600;font-size:18px}
+.seg{display:flex;gap:2px;padding:3px;border-radius:12px;background:var(--ground)}
+.seg button{height:38px;padding:0 18px;border:0;border-radius:9px;background:transparent;font-weight:600;color:var(--muted)}
+.seg button[aria-pressed="true"]{background:var(--ink);color:var(--ground)}
+.status{font-size:12px;color:var(--muted)}
+.dirbtn{margin-left:auto}
+
+.btn{height:40px;padding:0 14px;border:1px solid var(--line2);border-radius:10px;background:var(--paper);font-weight:600;font-size:13px;color:var(--ink);display:inline-flex;align-items:center;justify-content:center;gap:6px;white-space:nowrap}
+.btn.primary{background:var(--ink);color:var(--ground);border-color:var(--ink)}
+.btn.small{height:32px;padding:0 10px;font-size:12px}
+.btn.icon{width:40px;padding:0}
+.btn.danger{color:var(--warm)}
+.pill{display:inline-block;padding:3px 9px;border-radius:999px;font-size:11px;font-weight:600;white-space:nowrap}
+.pill.walked{background:var(--ink);color:var(--ground)}
+.pill.planned{background:var(--accent);color:var(--accent-ink)}
+.pill.idea,.pill.todo{background:var(--chip);color:var(--ink)}
+.stat{padding:12px;border-radius:10px;background:var(--ground)}
+.stat b{display:block;font-family:Fraunces,Georgia,serif;font-weight:600;font-size:24px;line-height:1.1}
+.stat span{font-size:12px;color:var(--muted)}
+.stat.warm b{color:var(--warm)}
+.card{background:var(--paper);border:1px solid var(--line);border-radius:14px}
+.field{display:flex;flex-direction:column;gap:5px;font-size:12px;color:var(--muted)}
+.field input,.field select,.field textarea{height:40px;padding:0 10px;border:1px solid var(--line2);border-radius:9px;background:var(--ground);color:var(--ink);width:100%;min-width:0}
+.field textarea{height:auto;padding:8px 10px;resize:vertical}
+.inline{height:34px;padding:0 8px;border:1px solid transparent;border-radius:8px;background:transparent;color:var(--ink);min-width:70px;width:100%}
+.inline:hover,.inline:focus{border-color:var(--line2);background:var(--ground)}
+.inline.num{width:72px;text-align:right}
+main{flex-grow:1;min-height:0}
+main[hidden]{display:none !important}
+
+/* Map view */
+#mapView{display:flex;overflow:hidden}
+.mapWrap{flex-grow:1;position:relative;background:var(--water);min-height:420px;overflow:hidden}
+.leafmap{position:absolute;inset:0;z-index:0}
+.mapWrap{background:#D3E6F3}
+.mapWrap > svg .sec{cursor:pointer}
+
+.mapWrap > svg{background:var(--water)}
+.mapWrap > svg.zoomed .hill{opacity:.5}
+.mapWrap > svg.zoomed2 .hill{opacity:.22}
+.mapWrap > svg .lbl text{font-family:"IBM Plex Sans",sans-serif;fill:var(--ink);text-anchor:middle;paint-order:stroke;stroke:var(--water);stroke-width:0.25em;stroke-linejoin:round;cursor:pointer}
+.mapWrap > svg .lbl.town text{fill:var(--ink);font-weight:500;stroke:var(--land);pointer-events:none}
+.hill{opacity:.85}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .hill{opacity:.35}}
+:root[data-theme="dark"] .hill{opacity:.35}
+.mini .lbl text{font-family:"IBM Plex Sans",sans-serif;fill:var(--ink)}
+.zoomctl{position:absolute;bottom:44px;left:20px;display:flex;flex-direction:column;gap:6px}
+.zoomctl button{width:44px;height:44px;border:0;border-radius:10px;background:var(--paper);box-shadow:var(--shadow);font-size:20px;color:var(--ink);display:flex;align-items:center;justify-content:center}
+.scalebar{position:absolute;bottom:44px;right:20px;display:flex;flex-direction:column;align-items:flex-start;gap:3px;font-size:11px;color:var(--ink)}
+.scalebar i{display:block;height:6px;border:2px solid var(--ink);border-top:0;min-width:20px}
+.scalebar span{padding:1px 6px;background:var(--paper);border-radius:4px}
+.attrib{position:absolute;bottom:0;left:0;right:0;padding:4px 20px;font-size:10px;color:var(--muted);background:var(--paper);opacity:.92;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.stageRow{border:0;border-left:0;background:transparent;width:100%;text-align:left;cursor:pointer;color:inherit}
+.stageRow:hover{background:var(--ground)}
+.stageRow[aria-current="true"]{background:var(--ground);font-weight:600}
+
+.overlay{position:absolute;top:20px;left:20px;width:290px;max-width:calc(100% - 40px);padding:16px 18px;background:var(--paper);border-radius:14px;box-shadow:var(--shadow);display:flex;flex-direction:column;gap:12px}
+.bar{display:flex;gap:3px;height:10px;border-radius:5px;overflow:hidden;background:var(--chip)}
+.bar i{display:block;height:100%}
+.legend{display:flex;gap:14px;font-size:12px;color:var(--muted);flex-wrap:wrap}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.legend i{width:10px;height:10px;border-radius:3px;display:inline-block}
+.panel{width:400px;flex-shrink:0;padding:26px 26px 22px;overscroll-behavior:contain;background:var(--paper);border-left:1px solid var(--line);display:flex;flex-direction:column;gap:18px;overflow-y:auto}
+.panel .eyebrow{font-size:12px;color:var(--muted)}
+.panel h2{font-size:28px}
+.stats3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.rows{display:flex;flex-direction:column;border-top:1px solid var(--line)}
+.row{display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--line)}
+.row .n{width:24px;height:24px;border-radius:50%;background:var(--ground);font-size:12px;font-weight:600;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.row .n.walked{background:var(--ink);color:var(--ground)}
+.row .n.planned{background:var(--accent);color:var(--accent-ink)}
+.row .name{flex-grow:1;min-width:0}
+.row .meta{font-size:13px;color:var(--muted);white-space:nowrap}
+.tripLink{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:12px 14px;border:1px solid var(--line);border-radius:12px;background:var(--paper);text-align:left;width:100%}
+.tripLink:hover{border-color:var(--accent)}
+.sectionHead{display:flex;flex-direction:column;gap:6px}
+
+/* Trips view */
+#tripsView{display:grid;grid-template-columns:280px minmax(0,1fr);overflow:hidden}
+.tripBody{display:grid;grid-template-columns:minmax(0,1fr) 300px;min-height:0;overflow:hidden;container-type:inline-size}
+.tripsList{padding:22px 18px;border-right:1px solid var(--line);display:flex;flex-direction:column;gap:14px;overflow-y:auto}
+.chips{display:flex;gap:6px;flex-wrap:wrap}
+.chips button{height:30px;padding:0 10px;border:0;border-radius:999px;background:var(--chip);font-size:12px;font-weight:500}
+.chips button[aria-pressed="true"]{background:var(--ink);color:var(--ground);font-weight:600}
+.tripCard{width:100%;text-align:left;padding:13px 15px;border-radius:12px;background:var(--paper);border:1.5px solid var(--line);display:flex;flex-direction:column;gap:5px}
+.tripCard[aria-current="true"]{border-color:var(--accent)}
+.tripCard .t{display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:15px;font-weight:600}
+.tripMain{padding:22px 26px;display:flex;flex-direction:column;gap:16px;overflow-y:auto;overscroll-behavior:contain;min-width:0}
+.tripHead{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:16px}
+.tripHead h2{font-size:30px}
+.tripHead input.title{font-family:Fraunces,Georgia,serif;font-weight:600;font-size:30px;height:44px;padding:0 6px;margin-left:-6px;border:1px solid transparent;border-radius:8px;background:transparent;width:min(100%,520px)}
+.tripHead input.title:hover,.tripHead input.title:focus{border-color:var(--line2);background:var(--paper)}
+.tripMeta{display:flex;flex-wrap:wrap;gap:10px 18px;align-items:center;color:var(--muted)}
+.tripMeta select,.tripMeta input{height:34px;padding:0 8px;border:1px solid var(--line2);border-radius:8px;background:var(--paper);color:var(--ink)}
+.day{padding:14px 16px;display:grid;grid-template-columns:44px minmax(0,1fr) 220px 76px;gap:14px;align-items:start}
+.day .num{text-align:center;padding-top:6px}.day .num b{display:block;font-family:Fraunces,Georgia,serif;font-size:26px;font-weight:600;line-height:1}
+.day .info{display:flex;flex-direction:column;gap:6px;min-width:0}
+.day .route{display:flex;align-items:center;gap:6px;min-width:0}
+.day .route input{flex:1 1 0;font-weight:600;font-size:15px}
+.day .nums{display:flex;align-items:center;gap:6px;font-size:13px;color:var(--muted);flex-wrap:wrap}
+.day .nums input{width:66px}
+.day .derived{display:flex;flex-direction:column;gap:4px;font-size:13px;color:var(--muted)}
+.ascbar{height:6px;border-radius:3px;background:var(--seafill);overflow:hidden;margin:14px 0}
+.ascbar i{display:block;height:100%;background:var(--accent)}
+.day .logi{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:4px 10px}
+.day .logi label{display:flex;align-items:center;gap:6px;font-size:13px;color:var(--muted);min-width:0}
+.day .logi svg{flex-shrink:0}
+.day .acts{display:grid;grid-template-columns:repeat(2,34px);gap:4px;justify-content:end}
+.day .acts button{width:34px;height:34px;border:0;border-radius:8px;background:transparent;color:var(--muted);display:flex;align-items:center;justify-content:center}
+.day .acts button:hover{background:var(--ground);color:var(--ink)}
+.day .acts button:disabled{opacity:.3}
+.day.rest{background:var(--ground)}
+.linkish{border:0;background:none;padding:0;color:var(--accent);font-size:inherit;text-decoration:underline;cursor:pointer}
+.sugg{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-top:2px}
+.chip{display:inline-flex;align-items:center;gap:5px;padding:3px 8px;border-radius:999px;background:var(--ground);font-size:12px;color:var(--ink);border:1px solid var(--line)}
+.chip svg{color:var(--muted)}
+.chip.lunch svg{color:var(--warm)}
+.chip button{width:20px;height:20px;border:0;border-radius:50%;background:var(--warm-soft);color:var(--ink);font-weight:700;line-height:1;cursor:pointer;padding:0}
+.poiList{display:flex;flex-direction:column;gap:2px;max-height:280px;overflow-y:auto;border-top:1px solid var(--line)}
+.poi{display:flex;gap:10px;align-items:flex-start;padding:8px 4px;border:0;border-bottom:1px solid var(--line);background:transparent;text-align:left;color:inherit;cursor:pointer;width:100%}
+.poi:hover{background:var(--ground)}
+.poi .pi{width:24px;height:24px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;color:#fff}
+.poi .pn{display:flex;flex-direction:column;gap:1px;min-width:0;font-size:13px}
+.pi.view{background:var(--poi-view)}.pi.sight{background:var(--poi-sight)}.pi.beach{background:var(--poi-beach)}.pi.wildlife{background:var(--poi-wildlife)}.pi.lunch{background:var(--poi-lunch)}.pi.town{background:var(--poi-town)}
+.mapWrap > svg .poiM{cursor:pointer}
+.mapWrap .openin{position:absolute;bottom:80px;right:20px}
+.openin .btn{box-shadow:var(--shadow)}
+.openin .pop{top:auto;bottom:44px;width:280px}
+.openin .pop a{display:block;padding:9px 10px;border-radius:8px;text-decoration:none;color:var(--ink);font-size:13px}
+.openin .pop a:hover{background:var(--ground)}
+.hovercard{position:fixed;z-index:50;width:300px;padding:12px 14px;background:var(--paper);border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow);font-size:13px}
+.hovercard[hidden]{display:none}
+.hovercard .hc-head{display:flex;gap:10px;align-items:flex-start;margin-bottom:6px}
+.hovercard p{margin:0 0 8px;line-height:1.4}
+.hovercard .hc-links{display:flex;flex-wrap:wrap;gap:4px 10px}
+.hovercard .hc-links a{font-size:12px;font-weight:600;text-decoration:none}
+.pin{width:30px;height:30px;flex-shrink:0;border:1px solid var(--line2);border-radius:8px;background:var(--paper);color:var(--accent);display:inline-flex;align-items:center;justify-content:center;cursor:pointer;padding:0}
+.pin:hover{background:var(--ground)}
+.links a{text-decoration:none;font-weight:600}
+.guide{border:1px solid var(--line);border-radius:10px;padding:8px 12px;background:var(--ground)}
+.guide summary{cursor:pointer;font-weight:600;font-size:13px}
+.guideBody{padding-top:8px}
+.guideText{font-size:14px;line-height:1.5;white-space:normal}
+.guideText p{margin:0 0 8px}
+.legendRow{display:flex;gap:14px;font-size:12px;color:var(--muted);flex-wrap:wrap}
+.legendRow .lg{display:inline-flex;align-items:center;gap:5px}
+.pickDialog{width:min(96vw,900px);padding:0;overflow:hidden}
+.pickHead{padding:16px 20px 10px}
+.pickMap{display:block;width:100%;height:min(60vh,520px);background:var(--water)}
+.pickFoot{display:flex;flex-wrap:wrap;gap:10px 16px;align-items:flex-end;padding:12px 20px 16px;border-top:1px solid var(--line)}
+.pickMap .lbl text{font-family:"IBM Plex Sans",sans-serif;fill:var(--ink);text-anchor:middle;paint-order:stroke;stroke:var(--land);stroke-width:0.25em}
+.pickMap .lbl.town text{text-anchor:start;fill:var(--ink);font-weight:500}
+.mapWrap > svg .lbl.poi text{fill:var(--muted);font-weight:500;stroke:var(--land)}
+.empty{padding:36px 20px;text-align:center;color:var(--muted);border:1.5px dashed var(--line2);border-radius:14px}
+.tripSide{padding:22px 18px;border-left:1px solid var(--line);background:var(--paper);display:flex;flex-direction:column;gap:18px;overflow-y:auto}
+.mini{width:100%;height:190px;border-radius:10px;background:var(--water);display:block}
+.note{display:flex;gap:10px}
+.note .av{width:28px;height:28px;flex-shrink:0;border-radius:50%;background:var(--accent);color:var(--accent-ink);font-size:11px;font-weight:600;display:flex;align-items:center;justify-content:center}
+.note .av.b{background:var(--warm);color:#fff}
+.note p{margin:0;font-size:13px;line-height:1.45}
+.note .who{font-size:11px;color:var(--muted)}
+.menu{position:relative}
+.menu .pop{position:absolute;right:0;top:44px;z-index:4;width:300px;max-height:320px;overflow-y:auto;padding:6px;background:var(--paper);border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow);display:none}
+.menu.open .pop{display:block}
+.pop button{width:100%;text-align:left;padding:9px 10px;border:0;border-radius:8px;background:transparent;display:flex;justify-content:space-between;gap:10px;font-size:13px}
+.pop button:hover{background:var(--ground)}
+.pop .hd{padding:8px 10px 4px;font-size:11px;color:var(--muted)}
+dialog{border:0;border-radius:16px;padding:24px;background:var(--paper);color:var(--ink);width:min(92vw,420px);box-shadow:var(--shadow)}
+dialog::backdrop{background:rgba(27,38,40,.35)}
+dialog form{display:flex;flex-direction:column;gap:14px}
+dialog h3{font-size:22px}
+.dactions{display:flex;justify-content:flex-end;gap:8px;margin-top:6px}
+@media (prefers-reduced-motion:no-preference){.seg button,.tripCard,.btn{transition:background .15s,border-color .15s}}
+@media (max-width:1250px){
+  #tripsView{grid-template-columns:240px minmax(0,1fr)}
+  .tripBody{grid-template-columns:minmax(0,1fr);overflow-y:auto}
+  .tripMain,.tripSide{overflow:visible}
+  .tripSide{border-left:0;border-top:1px solid var(--line)}
+  .tripSide .mini{height:220px}
+}
+@container (max-width:720px){
+  .day{grid-template-columns:44px minmax(0,1fr) 76px;gap:10px}
+  .day .derived{grid-column:2 / span 2}
+}
+@container (max-width:460px){
+  .day{grid-template-columns:36px minmax(0,1fr)}
+  .day .derived{grid-column:2}
+  .day .acts{grid-column:2;grid-template-columns:repeat(4,34px);justify-content:start}
+  .day .logi{grid-template-columns:minmax(0,1fr)}
+}
+@media (max-width:820px){
+  header.top{gap:12px;padding:0 14px}
+  .brand span{display:none}
+  .overlay{top:12px;left:12px;width:auto;padding:8px 12px;gap:6px;max-width:60%}
+  .overlay h1{font-size:17px}
+  .overlay .legend{display:none}
+  .overlay .bar{height:6px}
+  #mapView{flex-direction:column;overflow-y:auto}
+  .mapWrap{height:64vh;min-height:360px;flex-shrink:0}
+  .panel{width:100%;border-left:0;border-top:1px solid var(--line)}
+  #tripsView{grid-template-columns:minmax(0,1fr);overflow-y:auto}
+  .tripBody{overflow:visible}
+  .tripsList{border-right:0;border-bottom:1px solid var(--line);overflow:visible}
+}
+@media (max-width:820px){.status{display:none}.dirlong{display:none}.btn.dirbtn{padding:0 7px;font-size:11px;gap:3px;letter-spacing:-0.01em}.seg button{padding:0 10px}header.top{gap:8px}#unitBtn{padding:0 8px;font-size:11px}}
+
+.leaflet-container{font-family:"IBM Plex Sans",system-ui,sans-serif;font-size:13px;background:#D3E6F3}
+.seclabel{font:600 13px "IBM Plex Sans",sans-serif;color:#1B2628;white-space:nowrap;transform:translate(-50%,-50%);text-shadow:0 0 3px #fff,0 0 3px #fff,0 0 4px #fff;cursor:pointer;background:transparent;border:0}
+.seclabel.sel{font-weight:800}
+.leaflet-tooltip.townlbl{background:transparent;border:0;box-shadow:none;color:#1B2628;font-weight:500;text-shadow:0 0 3px #fff,0 0 3px #fff;padding:0 2px}
+.leaflet-tooltip.townlbl::before{display:none}
+.leaflet-tooltip.stagetip{font-size:12px}
+.leaflet-popup-content{margin:12px 14px;line-height:1.4}
+.pp .hc-head{display:flex;gap:10px;align-items:flex-start;margin-bottom:6px}
+.pp p{margin:6px 0}
+.pp .hc-links{display:flex;flex-wrap:wrap;gap:4px 10px}
+.pp .hc-links a,.hovercard .hc-links a{font-size:12px;font-weight:600;text-decoration:none}
+.wikithumb img,.hovercard .wikithumb img{display:block;width:100%;max-height:180px;object-fit:cover;border-radius:8px;margin:6px 0}
+.wikiext{margin:4px 0 6px}
+.nokey{background:#FFFDF8;border:1px solid #D5CFC2;border-radius:10px;padding:8px 10px;font-size:12px;color:#1B2628;box-shadow:0 6px 24px rgba(27,38,40,.10)}
+.mini{width:100%;height:190px;border-radius:10px;overflow:hidden}
+.pickMap{display:block;width:100%;height:min(60vh,520px)}
+.photoBox{margin-top:6px}
+.photoGrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px;margin:6px 0}
+.photoGrid a{display:block;position:relative;border-radius:8px;overflow:hidden;background:var(--ground)}
+.photoGrid img{display:block;width:100%;height:110px;object-fit:cover}
+.photoGrid span{position:absolute;left:0;right:0;bottom:0;padding:2px 6px;font-size:10px;color:#fff;background:rgba(0,0,0,.45);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.guideIn{width:100%;padding:8px 10px;border:1px solid var(--line2);border-radius:9px;background:var(--paper);color:var(--ink);font:inherit;font-size:13px;resize:vertical}
+.bar2{display:flex;gap:10px;align-items:center;padding:8px 20px;background:var(--warm-soft);border-bottom:1px solid var(--line);font-size:13px;flex-wrap:wrap}
+.bar2 input{flex:1 1 240px;height:32px;padding:0 8px;border:1px solid var(--line2);border-radius:8px;background:var(--paper);color:var(--ink);font:inherit;font-size:12px;min-width:0}
+.bar2[hidden]{display:none}
+.flagicon{background:transparent;border:0}
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="brand">
+    <svg viewBox="0 0 32 32" width="26" height="26" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M3 20c3-4 6-4 9 0s6 4 9 0 6-4 8 0"></path><path d="M3 26c3-4 6-4 9 0s6 4 9 0 6-4 8 0"></path><path d="M9 14l7-9 7 9"></path></svg>
+    <span>Coast Path</span>
+  </div>
+  <div class="seg" role="group" aria-label="View">
+    <button type="button" id="tabMap" aria-pressed="true">Map</button>
+    <button type="button" id="tabTrips" aria-pressed="false">Trips</button>
+  </div>
+  <button type="button" class="btn small dirbtn" id="dirBtn" title="Which way round you're walking the path"></button>
+  <button type="button" class="btn small" id="unitBtn" title="Switch between miles and kilometres"></button>
+  <div class="status" id="status">Loading…</div>
+</header>
+<div class="bar2" id="shareBar" hidden></div>
+<div class="bar2" id="seedBar" hidden><span>This plan is empty. Import the trips from the Claude version?</span><button type="button" class="btn small primary" id="seedBtn">Import</button><button type="button" class="btn small" id="seedSkip">No thanks</button></div>
+
+<main id="mapView">
+  <div class="mapWrap">
+    <div id="bigMap" class="leafmap" role="application" aria-label="Map of Wales with the coast path split into sections"></div>
+    <section class="overlay">
+      <div>
+        <h1 style="font-size:24px">Wales Coast Path</h1>
+        <div class="small muted" id="overallLine"></div>
+      </div>
+      <div class="bar" aria-hidden="true"><i id="barWalked" style="background:var(--ink);width:0"></i><i id="barPlanned" style="background:var(--accent);width:0"></i></div>
+      <div class="legend"><span><i style="background:var(--ink)"></i>Walked</span><span><i style="background:var(--accent)"></i>Planned</span><span><i style="background:var(--todo)"></i>Not yet</span></div>
+    </section>
+    <div class="zoomctl">
+      <button type="button" id="zoomIn" aria-label="Zoom in">+</button>
+      <button type="button" id="zoomOut" aria-label="Zoom out">−</button>
+      <button type="button" id="zoomReset" aria-label="Show the whole path" title="Whole path"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"></path></svg></button>
+    </div>
+    <div class="menu openin" id="openIn"><button type="button" class="btn small" id="openInBtn">Open this area in… ▾</button><div class="pop"></div></div>
+    
+  </div>
+  <aside class="panel" id="panel"></aside>
+</main>
+
+<main id="tripsView" hidden>
+  <aside class="tripsList">
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:10px">
+      <h2 style="font-size:24px">Trips</h2>
+      <button type="button" class="btn primary" id="newTripBtn">+ New trip</button>
+    </div>
+    <div class="chips" id="filterChips" role="group" aria-label="Filter trips">
+      <button type="button" data-f="all" aria-pressed="true">All</button>
+      <button type="button" data-f="planned" aria-pressed="false">Planned</button>
+      <button type="button" data-f="walked" aria-pressed="false">Walked</button>
+      <button type="button" data-f="idea" aria-pressed="false">Ideas</button>
+    </div>
+    <div id="tripCards" style="display:flex;flex-direction:column;gap:10px"></div>
+  </aside>
+  <div class="tripBody">
+    <section class="tripMain" id="tripMain"></section>
+    <aside class="tripSide" id="tripSide"></aside>
+  </div>
+</main>
+
+<div id="hovercard" class="hovercard" hidden></div>
+<dialog id="pickDialog" class="pickDialog">
+  <div class="pickHead"><h3 id="pickTitle">Choose a point</h3><div class="small muted" id="pickHint"></div></div>
+  <div id="pickMap" class="pickMap"></div>
+  <div class="pickFoot">
+    <div class="small muted" id="pickInfo" style="flex:1 1 100%"></div>
+    <label class="field" style="flex:1 1 220px">Name for this point<input id="pickName" maxlength="60" placeholder="Click the route first"></label>
+    <div style="display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap">
+      <button type="button" class="btn" id="pickCancel">Cancel</button>
+      <button type="button" class="btn" id="pickSplit" title="Keep this day's start and finish, but break it into two days here">Split the day here</button>
+      <button type="button" class="btn primary" id="pickOk" disabled>Use this point</button>
+    </div>
+  </div>
+</dialog>
+<dialog id="tripDialog">
+  <form method="dialog" id="tripForm">
+    <h3>New trip</h3>
+    <label class="field">Name (optional)<input name="name" maxlength="60" placeholder="e.g. Pembrokeshire north"></label>
+    <label class="field">Section<select name="section" id="dlgSection"></select></label>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+      <label class="field">Status<select name="status"><option value="idea">Idea</option><option value="planned" selected>Planned</option><option value="walked">Walked</option></select></label>
+      <label class="field">When<input name="when" maxlength="30" placeholder="e.g. May, or undated"></label>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+      <label class="field">First day<select name="dfrom" id="dlgFrom"></select></label>
+      <label class="field">Last day<select name="dto" id="dlgTo"></select></label>
+    </div>
+    <div class="small muted" id="dlgSummary"></div>
+    <label class="field" style="flex-direction:row;align-items:center;gap:10px"><input type="checkbox" name="reverse" style="width:18px;height:18px;margin:0"><span id="dlgRevLabel">Walk it the other way</span></label>
+    <label class="field" style="flex-direction:row;align-items:center;gap:10px"><input type="checkbox" name="empty" style="width:18px;height:18px;margin:0">Start with no days (add them later)</label>
+    <div class="dactions"><button type="button" class="btn" id="dlgCancel">Cancel</button><button type="submit" class="btn primary">Create trip</button></div>
+  </form>
+</dialog>
+
+<script src="vendor/leaflet.js"></script>
+<script src="vendor/proj4.js"></script>
+<script src="vendor/proj4leaflet.js"></script>
+<script src="vendor/firebase-app-compat.js"></script>
+<script src="vendor/firebase-auth-compat.js"></script>
+<script src="vendor/firebase-firestore-compat.js"></script>
+<script src="config.js"></script>
+<script src="data.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
